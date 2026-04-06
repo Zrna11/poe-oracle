@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PoE Price Oracle</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:#0a0806;color:#f0e8d0;font-family:'Cinzel',serif}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.page{max-width:900px;margin:0 auto;padding:20px 16px}
+
+.hdr{text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #4a3a18}
+.hdr-sub{font-size:9px;letter-spacing:6px;color:#8a7a50;margin-bottom:6px}
+.hdr-title{font-size:28px;font-weight:700;letter-spacing:5px;color:#f0c040;text-shadow:0 0 24px #c8a04440}
+.hdr-line{width:100px;height:1px;background:linear-gradient(90deg,transparent,#c8a044,transparent);margin:8px auto 0}
+
+.top-bar{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.league-label{font-size:10px;letter-spacing:2px;color:#c8a044}
+.league-select{background:#141008;border:2px solid #4a3a18;color:#f0e8d0;
+  padding:8px 12px;border-radius:3px;font-size:13px;outline:none;min-width:190px;
+  cursor:pointer;font-family:'Cinzel',serif;transition:border-color .2s}
+.league-select:focus{border-color:#c8a044}
+.league-select option{background:#1a1208;color:#f0e8d0}
+.league-status{font-size:11px;color:#6acc6a;font-family:'Crimson Pro',serif}
+
+.gfn-box{background:#081408;border:2px solid #2a4a2a;border-radius:4px;
+  padding:10px 16px;margin-bottom:14px}
+.gfn-title{font-size:10px;letter-spacing:3px;color:#6acc6a;margin-bottom:6px}
+.gfn-steps{font-family:'Crimson Pro',serif;font-size:13px;color:#a0c8a0;line-height:1.9}
+.gfn-steps strong{color:#c8f0c8;font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px}
+
+.paste-lbl{font-size:10px;letter-spacing:2px;color:#c8a044;margin-bottom:8px}
+#itemText{width:100%;display:block;background:#0e0c08;border:2px solid #4a3a18;
+  border-radius:4px;color:#e8ddb8;padding:14px;font-family:monospace;font-size:12px;
+  line-height:1.7;resize:vertical;outline:none;min-height:110px;transition:border-color .3s}
+#itemText:focus{border-color:#c8a044}
+#itemText::placeholder{color:#3a2a10;font-family:'Crimson Pro',serif;font-size:13px}
+
+.check-btn{display:block;width:100%;margin-top:10px;background:#1e1608;
+  border:2px solid #c8a044;color:#f0c040;padding:13px;border-radius:4px;
+  cursor:pointer;font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;transition:all .2s}
+.check-btn:hover:not(:disabled){background:#2a2010;border-color:#f0c040;color:#fff}
+.check-btn:disabled{opacity:.35;cursor:not-allowed;border-color:#3a2a10;color:#7a6030}
+
+.status-box{text-align:center;padding:28px;display:none}
+.spinner{width:32px;height:32px;border:3px solid #2a2010;border-top-color:#c8a044;
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+.status-lbl{font-size:11px;letter-spacing:3px;color:#c8a044}
+
+.err-box{background:#1a0505;border:2px solid #882020;border-radius:4px;
+  padding:12px 16px;color:#ff9090;font-family:'Crimson Pro',serif;
+  font-size:14px;margin-bottom:16px;display:none;line-height:1.7}
+
+.results{display:none;animation:fadeUp .35s ease;margin-top:16px}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.res-grid{grid-template-columns:1fr}}
+
+/* item card */
+.item-card{border-radius:4px;overflow:hidden}
+.item-hdr{padding:12px 16px;text-align:center}
+.item-name{font-size:16px;font-weight:700;line-height:1.3;margin-bottom:3px}
+.item-base{font-size:14px;font-family:'Crimson Pro',serif;margin-bottom:3px}
+.item-rar{font-size:9px;letter-spacing:3px}
+.item-stats{display:flex;gap:14px;padding:8px 16px;flex-wrap:wrap;border-bottom:1px solid}
+.istat{font-size:11px;color:#9a8860}
+.istat b{color:#d4c090;font-weight:400}
+.item-mods{padding:10px 16px 14px;font-family:'Crimson Pro',serif}
+.mod{font-size:13px;line-height:1.8}
+.sep{height:1px;margin:7px 0}
+.corrupt{color:#ff7070;font-size:12px;margin-top:8px}
+.synth{color:#88aaff;font-size:11px;margin-top:4px}
+
+/* price card */
+.price-card{background:#0e0c08;border:2px solid #4a3a18;border-radius:4px;padding:16px}
+.card-ttl{font-size:9px;letter-spacing:3px;color:#c8a044;margin-bottom:14px}
+.pvals{display:flex;gap:20px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+.pchaos{font-size:34px;font-weight:700;color:#f0c040;line-height:1}
+.pdivine{font-size:22px;color:#e0a030}
+.punit{font-size:9px;color:#7a6040;margin-top:4px;letter-spacing:2px}
+.pmeta{display:flex;gap:12px;font-size:11px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.ch{color:#6acc6a}.cm{color:#d4a030}.cl{color:#cc5555}
+.psrc{color:#5a4a28}
+
+/* listings */
+.listings{margin-bottom:14px}
+.listing{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 10px;border-radius:3px;margin-bottom:5px;
+  background:#141008;border:1px solid #2a2010;font-family:'Crimson Pro',serif}
+.listing-price{font-size:14px;color:#f0c040;font-weight:600}
+.listing-account{font-size:11px;color:#5a4a28}
+.listing-note{font-size:11px;color:#7a6a40;text-align:right}
+
+.trade-a{display:block;text-align:center;padding:10px;font-size:10px;letter-spacing:3px;
+  background:#141008;border:2px solid #4a3a18;color:#c8a044;
+  text-decoration:none;border-radius:3px;font-family:'Cinzel',serif;transition:all .2s}
+.trade-a:hover{border-color:#c8a044;color:#f0c040;background:#1e1608}
+
+/* analysis */
+.anlys-card{background:#0e0c08;border:2px solid #4a3a18;border-radius:4px;
+  padding:16px;font-family:'Crimson Pro',serif}
+.asumm{color:#d4c090;font-size:14px;line-height:1.8;margin-bottom:12px}
+.asect{margin-bottom:10px}
+.asect-ttl{font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;margin-bottom:6px}
+.amod{font-size:13px;line-height:1.65;display:flex;gap:6px;margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <div class="hdr-sub">PATH OF EXILE</div>
+    <div class="hdr-title">PRICE ORACLE</div>
+    <div class="hdr-line"></div>
+  </div>
+
+  <div class="top-bar">
+    <span class="league-label">LEAGUE</span>
+    <select class="league-select" id="leagueInput"><option>Loading…</option></select>
+    <span class="league-status" id="leagueStatus"></span>
+  </div>
+
+  <div class="gfn-box">
+    <div class="gfn-title">GEFORCE NOW — HOW TO USE</div>
+    <div class="gfn-steps">
+      <strong>1.</strong> Hover item in-game → press <strong>Ctrl+C</strong><br>
+      <strong>2.</strong> Press <strong>Shift+Tab</strong> → Web Browser → navigate here<br>
+      <strong>3.</strong> Click the text box → press <strong>Ctrl+V</strong> — results appear automatically
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <div class="paste-lbl">ITEM TEXT</div>
+    <textarea id="itemText" rows="6" placeholder="Click here, then Ctrl+V to paste item…"></textarea>
+    <button class="check-btn" id="checkBtn" onclick="tryCheck()" disabled>PASTE &amp; CHECK PRICE</button>
+  </div>
+
+  <div class="status-box" id="statusBox">
+    <div class="spinner"></div>
+    <div class="status-lbl" id="statusLbl"></div>
+  </div>
+  <div class="err-box" id="errBox"></div>
+
+  <div class="results" id="results">
+    <div class="res-grid">
+      <div id="itemCard" class="item-card"></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div id="priceCard" class="price-card"></div>
+        <div id="anlysCard" class="anlys-card" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── rarity colours ────────────────────────────────────────────────────────────
+const PAL={
+  Normal:          {t:'#d0d0d0',bg:'#0e0e0e',b:'#505050'},
+  Magic:           {t:'#aaaaff',bg:'#0c0c1e',b:'#5050bb'},
+  Rare:            {t:'#ffff88',bg:'#121200',b:'#909000'},
+  Unique:          {t:'#e08030',bg:'#140a00',b:'#804020'},
+  Currency:        {t:'#d0b060',bg:'#130e00',b:'#706030'},
+  Gem:             {t:'#20c8c0',bg:'#001816',b:'#107070'},
+  'Divination Card':{t:'#30d0ff',bg:'#00141c',b:'#107090'},
+};
+
+// ── league fetch ──────────────────────────────────────────────────────────────
+window.onload=function(){
+  fetchLeagues();
+  const ta=document.getElementById('itemText');
+  ta.focus();
+  ta.addEventListener('input',()=>{
+    document.getElementById('checkBtn').disabled=ta.value.trim().length<20;
+  });
+  ta.addEventListener('paste',()=>{
+    setTimeout(()=>{
+      const v=ta.value.trim();
+      if(v.length>20){document.getElementById('checkBtn').disabled=false;tryCheck();}
+    },100);
+  });
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='v') ta.focus();
+  });
+};
+
+async function fetchLeagues(){
+  const sel=document.getElementById('leagueInput');
+  const st=document.getElementById('leagueStatus');
+  try{
+    const r=await fetch('https://api.pathofexile.com/leagues?type=main&compact=1');
+    const data=await r.json();
+    const all=(Array.isArray(data)?data:data.result||[]).map(l=>typeof l==='string'?l:l.id).filter(Boolean);
+    const temp=all.filter(l=>!['Standard','Hardcore'].includes(l)&&!l.toLowerCase().includes('ssf')&&!l.toLowerCase().includes('ruthless')&&!l.toLowerCase().includes('solo'));
+    const perm=all.filter(l=>l==='Standard'||l==='Hardcore');
+    const final=[...temp,...perm];
+    sel.innerHTML=final.map(l=>`<option value="${l}">${l}</option>`).join('');
+    st.textContent=`${final.length} leagues loaded`;
+    st.style.color='#6acc6a';
+  }catch{
+    sel.innerHTML='<option value="Standard">Standard</option><option value="Hardcore">Hardcore</option>';
+    st.textContent='enter league manually';
+    st.style.color='#cc8844';
+    sel.outerHTML=sel.outerHTML.replace('<select','<input type="text"').replace('</select>','');
+  }
+}
+
+// ── item text parser ──────────────────────────────────────────────────────────
+function parseItem(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const sections=text.split(/\n--------\n|\r\n--------\r\n/).map(s=>s.split('\n').map(l=>l.trim()).filter(Boolean));
+
+  const item={rarity:'Normal',name:null,base:null,itemClass:null,
+    implicitMods:[],mods:[],ilvl:null,quality:null,links:null,sockets:null,
+    corrupted:false,identified:true,synthesised:false,mirrored:false,fractured:false};
+
+  for(const l of lines){
+    if(l.startsWith('Rarity: ')) item.rarity=l.slice(8).trim();
+    if(l.startsWith('Item Class: ')) item.itemClass=l.slice(12).trim();
+    if(l.startsWith('Item Level: ')) item.ilvl=parseInt(l.slice(12))||null;
+    if(l.startsWith('Quality: ')) item.quality=parseInt(l.match(/\d+/)?.[0])||null;
+    if(l.startsWith('Sockets: ')){
+      item.sockets=l.slice(9).trim();
+      item.links=Math.max(...item.sockets.split(' ').map(g=>g.split('-').length),1);
+    }
+    if(l==='Corrupted') item.corrupted=true;
+    if(l==='Unidentified') item.identified=false;
+    if(l==='Synthesised Item') item.synthesised=true;
+    if(l==='Mirrored') item.mirrored=true;
+    if(l==='Fractured Item') item.fractured=true;
+  }
+
+  // name/base from header
+  const hdr=(sections[0]||[]).filter(l=>!l.startsWith('Rarity:')&&!l.startsWith('Item Class:'));
+  if(['Unique','Rare'].includes(item.rarity)){item.name=hdr[0]||null;item.base=hdr[1]||hdr[0]||null;}
+  else{item.base=hdr[0]||null;}
+  if(['Currency','Gem','Divination Card'].includes(item.rarity)) item.name=item.base;
+
+  // mods after ilvl section
+  let pastIlvl=false;const modSects=[];
+  for(const sec of sections){
+    if(sec.some(l=>l.startsWith('Item Level:'))) {pastIlvl=true;continue;}
+    if(!pastIlvl) continue;
+    const f=sec.filter(l=>!['Corrupted','Unidentified','Mirrored','Synthesised Item','Fractured Item'].includes(l)&&!l.startsWith('Note:'));
+    if(f.length) modSects.push(f);
+  }
+  if(modSects.length>=2){item.implicitMods=modSects[0];item.mods=modSects.slice(1).flat();}
+  else if(modSects.length===1) item.mods=modSects[0];
+
+  return item;
+}
+
+// ── ninja type detection ──────────────────────────────────────────────────────
+const WEAPON_BASES=['Sword','Axe','Mace','Bow','Wand','Dagger','Claw','Staff','Sceptre','Spear','Flail'];
+const JEWEL_BASES=['Cobalt Jewel','Crimson Jewel','Viridian Jewel','Prismatic Jewel','Abyss Jewel','Timeless Jewel','Cluster Jewel'];
+const FLASK_BASES=['Flask'];
+const ACCESSORY_BASES=['Ring','Amulet','Belt','Talisman','Quiver'];
+
+function getNinjaType(item){
+  if(!['Unique','Currency','Gem','Divination Card'].includes(item.rarity)) return null;
+  if(item.rarity==='Currency') return 'Currency';
+  if(item.rarity==='Divination Card') return 'DivinationCard';
+  if(item.rarity==='Gem') return 'SkillGem';
+  // Unique
+  const base=item.base||'';
+  const cls=item.itemClass||'';
+  if(JEWEL_BASES.some(j=>base.includes(j))||cls.includes('Jewel')) return 'UniqueJewel';
+  if(FLASK_BASES.some(f=>base.includes(f))||cls.includes('Flask')) return 'UniqueFlask';
+  if(ACCESSORY_BASES.some(a=>base.includes(a))||cls.includes('Ring')||cls.includes('Amulet')||cls.includes('Belt')) return 'UniqueAccessory';
+  if(WEAPON_BASES.some(w=>base.includes(w))||cls.includes('Weapon')||cls.includes('Bow')) return 'UniqueWeapon';
+  return 'UniqueArmour';
+}
+
+// ── poe.ninja lookup ──────────────────────────────────────────────────────────
+async function ninjaLookup(item,league){
+  const ninjaType=getNinjaType(item);
+  if(!ninjaType) return null;
+  const isCurr=ninjaType==='Currency';
+  const url=isCurr
+    ?`https://poe.ninja/api/data/currencyoverview?league=${encodeURIComponent(league)}&type=Currency`
+    :`https://poe.ninja/api/data/itemoverview?league=${encodeURIComponent(league)}&type=${ninjaType}`;
+  try{
+    const r=await fetch(url);if(!r.ok) return null;
+    const j=await r.json();
+    const lines=j.lines||[];
+    const q=(item.name||item.base||'').toLowerCase();
+    return lines.find(l=>(l.name||l.currencyTypeName||'').toLowerCase()===q)
+        ||lines.find(l=>(l.name||l.currencyTypeName||'').toLowerCase().includes(q))
+        ||null;
+  }catch{return null;}
+}
+
+// ── poe trade search via cors proxy ───────────────────────────────────────────
+const PROXY='https://corsproxy.io/?';
+
+async function tradeSearch(item,league){
+  const query=buildTradeQuery(item);
+  if(!query) return null;
+  try{
+    // step 1: search
+    const sRes=await fetch(`${PROXY}https://www.pathofexile.com/api/trade/search/${encodeURIComponent(league)}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body:JSON.stringify(query)
+    });
+    if(!sRes.ok) return null;
+    const sData=await sRes.json();
+    if(!sData.result?.length) return {listings:[],total:0};
+    // step 2: fetch top 5 listings
+    const ids=sData.result.slice(0,5).join(',');
+    const fRes=await fetch(`${PROXY}https://www.pathofexile.com/api/trade/fetch/${ids}?query=${sData.id}`);
+    if(!fRes.ok) return null;
+    const fData=await fRes.json();
+    return {listings:fData.result||[],total:sData.total||0,queryId:sData.id};
+  }catch(err){
+    console.warn('Trade API error:',err);
+    return null;
+  }
+}
+
+function buildTradeQuery(item){
+  const q={query:{status:{option:'online'},filters:{type_filters:{filters:{rarity:{option:item.rarity.toLowerCase()}}}}},sort:{price:'asc'}};
+  if(item.rarity==='Unique'){
+    if(item.name) q.query.name=item.name;
+    q.query.type=item.base;
+    q.query.filters.misc_filters={filters:{corrupted:{option:item.corrupted?'true':'false'}}};
+  } else if(item.rarity==='Currency'||item.rarity==='Gem'||item.rarity==='Divination Card'){
+    q.query.type=item.base;
+  } else {
+    // rare/magic/normal
+    q.query.type=item.base;
+    if(item.ilvl) q.query.filters.misc_filters={filters:{ilvl:{min:Math.max(0,item.ilvl-5)}}};
+  }
+  return q;
+}
+
+function tradeUrl(item,league){
+  const q=buildTradeQuery(item);
+  if(!q) return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}`;
+  return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}?q=${encodeURIComponent(JSON.stringify(q))}`;
+}
+
+// ── price extraction from trade listings ──────────────────────────────────────
+function extractPrices(tradeResult){
+  if(!tradeResult?.listings?.length) return [];
+  return tradeResult.listings
+    .filter(l=>l?.listing?.price)
+    .map(l=>{
+      const p=l.listing.price;
+      const acc=l.listing.account?.name||'?';
+      const whisper=l.listing.whisper||'';
+      return {amount:p.amount,currency:p.currency,account:acc,whisper};
+    });
+}
+
+function medianPrice(prices){
+  if(!prices.length) return null;
+  // normalise to chaos assuming divine=200 (rough)
+  const chaos=prices.map(p=>{
+    if(p.currency==='chaos') return p.amount;
+    if(p.currency==='divine') return p.amount*200;
+    return null;
+  }).filter(Boolean);
+  if(!chaos.length) return null;
+  chaos.sort((a,b)=>a-b);
+  return chaos[Math.floor(chaos.length/2)];
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fn(n,dp=0){
+  if(n==null||isNaN(+n)) return'?';n=+n;
+  if(n>=1000) return`${(n/1000).toFixed(1)}k`;
+  return n.toFixed(n<10?Math.max(dp,1):dp);
+}
+
+// ── status helpers ────────────────────────────────────────────────────────────
+function setPhase(p){
+  const labels={parsing:'Reading item…',fetching:'Checking poe.ninja…',trading:'Fetching live listings…'};
+  document.getElementById('statusBox').style.display=p?'block':'none';
+  document.getElementById('statusLbl').textContent=labels[p]||'';
+  document.getElementById('errBox').style.display='none';
+  document.getElementById('results').style.display='none';
+}
+function showErr(msg){setPhase(null);const b=document.getElementById('errBox');b.textContent=msg;b.style.display='block';}
+
+// ── render helpers ────────────────────────────────────────────────────────────
+function renderItem(item){
+  const p=PAL[item.rarity]||PAL.Normal;
+  const el=document.getElementById('itemCard');
+  el.style.background=p.bg;el.style.border=`2px solid ${p.b}`;
+  const stats=[
+    item.ilvl!=null?`<span class="istat">iLvl <b>${item.ilvl}</b></span>`:'',
+    item.quality>0?`<span class="istat">Quality <b>${item.quality}%</b></span>`:'',
+    item.links>1?`<span class="istat">Links <b>${item.links}</b></span>`:'',
+    item.sockets?`<span class="istat">Sockets <b>${esc(item.sockets)}</b></span>`:'',
+  ].filter(Boolean).join('');
+  const imps=(item.implicitMods||[]).map(m=>`<div class="mod" style="color:#c0c0ff">${esc(m)}</div>`).join('');
+  const mods=(item.mods||[]).map(m=>`<div class="mod" style="color:#aaaaff">${esc(m)}</div>`).join('');
+  el.innerHTML=`
+    <div class="item-hdr" style="background:${p.b}30;border-bottom:2px solid ${p.b}60">
+      ${item.name?`<div class="item-name" style="color:${p.t}">${esc(item.name)}</div>`:''}
+      <div class="item-base" style="color:${p.t}bb">${esc(item.base||'')}</div>
+      <div class="item-rar" style="color:${p.t}88">${esc(item.rarity).toUpperCase()}</div>
+    </div>
+    ${stats?`<div class="item-stats" style="border-color:${p.b}40">${stats}</div>`:''}
+    <div class="item-mods">
+      ${imps}${imps&&mods?`<div class="sep" style="background:${p.b}50"></div>`:''}${mods}
+      ${item.corrupted?'<div class="corrupt">Corrupted</div>':''}
+      ${item.synthesised?'<div class="synth">Synthesised Item</div>':''}
+      ${item.mirrored?'<div class="synth" style="color:#aaaaff">Mirrored</div>':''}
+    </div>`;
+}
+
+function renderPrice(item,ninja,tradeResult,league){
+  const chaos=ninja?.chaosValue??ninja?.chaosEquivalent;
+  const divine=ninja?.divineValue;
+  const listings=ninja?.listingCount;
+  const prices=extractPrices(tradeResult);
+  const med=medianPrice(prices);
+  const src=ninja?'poe.ninja':prices.length?'live trade':'no data';
+  const displayChaos=chaos??med;
+
+  let priceHtml='<span style="color:#6a5a30;font-family:\'Crimson Pro\',serif;font-size:14px">No price data found</span>';
+  if(displayChaos!=null||divine!=null){
+    priceHtml=`
+      ${displayChaos!=null?`<div><div class="pchaos">${fn(displayChaos,displayChaos<10?1:0)}</div><div class="punit">CHAOS ORBS</div></div>`:''}
+      ${divine!=null?`<div><div class="pdivine">${fn(divine,divine<1?2:1)}</div><div class="punit">DIVINE ORBS</div></div>`:''}`;
+  }
+
+  // top listings
+  let listHtml='';
+  if(prices.length){
+    listHtml=`<div class="listings">`+
+      prices.slice(0,4).map(p=>`
+        <div class="listing">
+          <div>
+            <div class="listing-price">${fn(p.amount)} ${esc(p.currency)}</div>
+            <div class="listing-account">${esc(p.account)}</div>
+          </div>
+        </div>`).join('')+
+      `</div>`;
+  }
+
+  document.getElementById('priceCard').innerHTML=`
+    <div class="card-ttl">PRICE CHECK</div>
+    <div class="pvals">${priceHtml}</div>
+    <div class="pmeta">
+      ${listings!=null?`<span style="color:#6a5a30">${listings} ninja listings</span>`:''}
+      ${tradeResult?.total?`<span style="color:#6a5a30">${tradeResult.total} trade results</span>`:''}
+      <span class="psrc">${src}</span>
+    </div>
+    ${listHtml}
+    <a class="trade-a" href="${tradeUrl(item,league)}" target="_blank">OPEN ON TRADE SITE ↗</a>`;
+}
+
+// ── main pipeline ─────────────────────────────────────────────────────────────
+function tryCheck(){
+  const t=document.getElementById('itemText').value.trim();
+  if(t.length>20) check(t);
+}
+
+async function check(text){
+  setPhase('parsing');
+  try{
+    const item=parseItem(text);
+    if(!item.base) throw new Error('Could not read item. Make sure you Ctrl+C directly over the item tooltip in-game.');
+
+    const league=document.getElementById('leagueInput').value||'Standard';
+
+    setPhase('fetching');
+    const ninja=await ninjaLookup(item,league);
+
+    setPhase('trading');
+    const tradeResult=await tradeSearch(item,league);
+
+    setPhase(null);
+    renderItem(item);
+    renderPrice(item,ninja,tradeResult,league);
+    document.getElementById('anlysCard').style.display='none';
+    document.getElementById('results').style.display='block';
+
+  }catch(err){
+    showErr(err.message||'Something went wrong.');
+  }
+}
+</script>
+</body>
+</html>
