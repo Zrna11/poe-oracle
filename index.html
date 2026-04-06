@@ -204,10 +204,13 @@ async function fetchLeagues(){
     sel.outerHTML='<input class="league-select" type="text" id="leagueInput" value="Standard" placeholder="e.g. Settlers">';
   }
 }
-const API_KEY='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';
 window.onload=function(){
-  localStorage.setItem('poe_oracle_key',API_KEY);
-  document.getElementById('apiRow').style.display='none';
+  const saved=localStorage.getItem('poe_oracle_key');
+  if(saved){
+    document.getElementById('apiKey').value=saved;
+    document.getElementById('apiOk').style.display='inline';
+    document.getElementById('apiRow').style.display='none';
+  }
   fetchLeagues();
   const ta=document.getElementById('itemText');
   ta.focus();
@@ -223,6 +226,7 @@ function saveKey(){
   if(!k)return;
   localStorage.setItem('poe_oracle_key',k);
   document.getElementById('apiOk').style.display='inline';
+  setTimeout(()=>document.getElementById('apiRow').style.display='none', 800);
 }
 function onInput(){
   document.getElementById('checkBtn').disabled=document.getElementById('itemText').value.trim().length<20;
