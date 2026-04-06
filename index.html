@@ -115,6 +115,7 @@ html,body{min-height:100vh;background:#0a0806;color:#f0e8d0;font-family:'Cinzel'
     <div class="hdr-title">PRICE ORACLE</div>
     <div class="hdr-line"></div>
   </div>
+  <div style="text-align:right;margin-bottom:8px"><a href="#" onclick="resetKey();return false;" style="font-size:10px;color:#4a3a18;text-decoration:none;letter-spacing:1px;font-family:'Cinzel',serif" id="changeKeyLink">⚙ CHANGE API KEY</a></div>
 
   <div class="api-row" id="apiRow">
     <span class="api-label">ANTHROPIC API KEY</span>
@@ -210,6 +211,9 @@ window.onload=function(){
     document.getElementById('apiKey').value=saved;
     document.getElementById('apiOk').style.display='inline';
     document.getElementById('apiRow').style.display='none';
+    document.getElementById('changeKeyLink').style.color='#4a3a18';
+  } else {
+    document.getElementById('changeKeyLink').style.color='#c8a044';
   }
   fetchLeagues();
   const ta=document.getElementById('itemText');
@@ -221,6 +225,13 @@ window.onload=function(){
   });
 };
 
+function resetKey(){
+  localStorage.removeItem('poe_oracle_key');
+  document.getElementById('apiRow').style.display='flex';
+  document.getElementById('apiKey').value='';
+  document.getElementById('apiOk').style.display='none';
+  document.getElementById('changeKeyLink').style.color='#c8a044';
+}
 function saveKey(){
   const k=document.getElementById('apiKey').value.trim();
   if(!k)return;
